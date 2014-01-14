@@ -119,26 +119,6 @@ module Kernel
       obj
     end
   end
-
-  def Array(object, *args, &block)
-    %x{
-      if (object == null || object === nil) {
-        return [];
-      }
-      else if (#{native?(object)}) {
-        return #{Native::Array.new(object, *args, &block).to_a};
-      }
-      else if (#{object.respond_to? :to_ary}) {
-        return #{object.to_ary};
-      }
-      else if (#{object.respond_to? :to_a}) {
-        return #{object.to_a};
-      }
-      else {
-        return [object];
-      }
-    }
-  end
 end
 
 class Native::Object < BasicObject
@@ -230,105 +210,8 @@ class Native::Object < BasicObject
     `self._klass`
   end
 
-  def to_a(options = {}, &block)
-    Native::Array.new(@native, options, &block).to_a
-  end
-
-  def to_ary(options = {}, &block)
-    Native::Array.new(@native, options, &block)
-  end
-
   def inspect
     "#<Native:#{`String(#@native)`}>"
-  end
-end
-
-class Native::Array
-  include Native
-  include Enumerable
-
-  def initialize(native, options = {}, &block)
-    super(native)
-
-    @get    = options[:get] || options[:access]
-    @named  = options[:named]
-    @set    = options[:set] || options[:access]
-    @length = options[:length] || :length
-    @block  = block
-
-    if `#{length} == null`
-      raise ArgumentError, "no length found on the array-like object"
-    end
-  end
-
-  def each(&block)
-    return enum_for :each unless block
-
-    %x{
-      for (var i = 0, length = #{length}; i < length; i++) {
-        var value = $opal.$yield1(block, #{self[`i`]});
-
-        if (value === $breaker) {
-          return $breaker.$v;
-        }
-      }
-    }
-
-    self
-  end
-
-  def [](index)
-    result = case index
-      when String, Symbol
-        @named ? `#@native[#@named](#{index})` : `#@native[#{index}]`
-
-      when Integer
-        @get ? `#@native[#@get](#{index})` : `#@native[#{index}]`
-    end
-
-    if result
-      if @block
-        @block.call(result)
-      else
-        Native(result)
-      end
-    end
-  end
-
-  def []=(index, value)
-    if @set
-      `#@native[#@set](#{index}, #{Native.convert(value)})`
-    else
-      `#@native[#{index}] = #{Native.convert(value)}`
-    end
-  end
-
-  def last(count = nil)
-    if count
-      index  = length - 1
-      result = []
-
-      while index >= 0
-        result << self[index]
-        index  -= 1
-      end
-
-      result
-    else
-      self[length - 1]
-    end
-  end
-
-  def length
-    `#@native[#@length]`
-  end
-
-  def to_ary
-    self
-  end
-
-  def inspect
-    to_a.inspect
   end
 end
 
@@ -363,20 +246,6 @@ class MatchData
 end
 
 class Struct
-  def initialize(*args)
-    if args.length == 1 && native?(args[0])
-      object = args[0]
-
-      members.each {|name|
-        instance_variable_set "@#{name}", Native(`#{object}[#{name}]`)
-      }
-    else
-      members.each_with_index {|name, index|
-        instance_variable_set "@#{name}", args[index]
-      }
-    end
-  end
-
   def to_n
     result = `{}`
 
@@ -428,6 +297,7 @@ class NilClass
 end
 
 class Hash
+  # TODO: move to Hash.from() or JSON.from() or something similar
   def initialize(defaults = undefined, &block)
     %x{
       if (defaults != null) {
