@@ -38,6 +38,9 @@ module Opal
     # compile top level local vars with support for irb style vars
     compiler_option :irb, false, :irb?
 
+    # is this file being compiled as a template?
+    compiler_option :template, false, :template?
+
     # how to handle dynamic requires (:error, :warning, :ignore)
     compiler_option :dynamic_require_severity, :error
 

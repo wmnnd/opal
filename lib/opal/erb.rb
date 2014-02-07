@@ -15,7 +15,7 @@ module Opal
         self.find_code
         self.wrap_compiled
 
-        Opal.compile @result
+        Opal.compile @result, :template => true
       end
 
       def fix_quotes
@@ -43,7 +43,12 @@ module Opal
       end
 
       def wrap_compiled
-        @result = "Template.new('#@file_name') do |output_buffer|\noutput_buffer.append(\"#@result\")\noutput_buffer.join\nend\n"
+        @result = <<-EOS
+          Template.new("#@file_name") do |output_buffer, __locals = {}|
+            output_buffer.append("#@result")
+            output_buffer.join
+          end
+        EOS
       end
     end
   end

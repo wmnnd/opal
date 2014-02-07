@@ -89,6 +89,10 @@ module Opal
         opts.on("--[no-]irb", "IRB var mode") do |flag|
           options[:irb] = flag
         end
+
+        opts.on("--template", "Template compilation mode") do
+          options[:template] = true
+        end
       end
     end
 
