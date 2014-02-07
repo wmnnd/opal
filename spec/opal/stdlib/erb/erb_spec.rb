@@ -34,7 +34,7 @@ describe "ERB files" do
   describe "locals" do
     it "can be passed to a compiled template" do
       def self.non_local; 'Ford'; end
-      @with_locals.render(self, {is_local: 'Prefect'}).should == "Ford Prefect\n"
+      @with_locals.render(self, {:is_local => 'Prefect'}).should == "Ford Prefect\n"
     end
   end
 end
