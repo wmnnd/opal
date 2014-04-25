@@ -100,8 +100,53 @@ class Range
     (`Math.abs(_end - _begin) + 1`).to_i
   end
 
-  def step(n = 1)
-    raise NotImplementedError
+  def step(step = 1)
+    return enum_for :step, step unless block_given?
+
+    _begin  = @begin
+    _end    = @end
+    current = _begin
+
+    p ['>>>>', inspect, step]
+
+    # if Numeric === _begin && (Float === step && !(Integer === step))
+    p ['Numeric === _begin', Numeric === _begin]
+    if Numeric === _begin
+      unless Numeric === step
+        step = Opal.coerce_to step, Integer, :to_int
+        raise TypeError, "step's not a number" unless Numeric === step
+      end
+    else
+      step = Opal.coerce_to step, Integer, :to_int
+      raise TypeError, "step's not an Integer"  unless Integer === step
+      # raise TypeError, "step's not a number" unless Float === step
+    end
+
+    raise ArgumentError, "step can't be negative" if step < 0
+    raise ArgumentError, "step can't be zero"     if step == 0
+
+    if Numeric === _begin && Numeric === _end && Numeric === step # fixnums are special
+      _end += step / 2.0 unless @exclude
+      %x{
+        while (current < _end) {
+          #{yield(current)};
+          current += step;
+        }
+      }
+    else
+      raise TypeError, 'range begin does not respond to #succ' unless _begin.respond_to? :succ
+      _end = _end.succ unless @exclude
+      yield current
+      until `((#{current <=> _end}) < 0)`
+        %x{
+          for (var i = step; i > 0; i--) {
+            #{current = current.succ};
+          }
+        }
+        yield current
+      end
+    end
+    self
   end
 
   def to_s

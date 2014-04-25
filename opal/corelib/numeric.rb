@@ -496,6 +496,10 @@ class Numeric
   def negative?
     `1 / self < 0`
   end
+
+  def self.===(other)
+    `!!other._isNumber`
+  end
 end
 
 Fixnum = Numeric
