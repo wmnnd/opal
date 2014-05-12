@@ -18,7 +18,8 @@ Gem::Specification.new do |s|
   s.test_files    = `git ls-files -- {test,spec,features}/*`.split("\n")
   s.require_paths = ['lib']
 
-  s.add_dependency 'source_map'
+  # s.add_dependency 'source_map'
+  s.add_dependency 'sourcemap'
   s.add_dependency 'sprockets'
 
   s.add_development_dependency 'mspec', '1.5.20'

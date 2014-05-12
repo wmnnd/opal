@@ -1,5 +1,5 @@
 # require 'opal'
-require 'source_map'
+require 'sourcemap'
 
 module Opal
   class SourceMap
@@ -12,18 +12,29 @@ module Opal
     end
 
     def map
-      @map ||= ::SourceMap.new.tap do |map|
+      # @mappings = SourceMap::Map.new([
+      #   SourceMap::Mapping.new('a.js', SourceMap::Offset.new(0, 0), SourceMap::Offset.new(0, 0)),
+      #   SourceMap::Mapping.new('b.js', SourceMap::Offset.new(1, 0), SourceMap::Offset.new(20, 0)),
+      #   SourceMap::Mapping.new('c.js', SourceMap::Offset.new(2, 0), SourceMap::Offset.new(30, 0))
+      # ])
+
+      @map ||= begin
         line, column = 1, 0
 
+        mappings = []
         @fragments.each do |fragment|
           if source_line = fragment.line
-            map.add_mapping(
-              :generated_line => line,
-              :generated_col  => column,
-              :source_line    => source_line,
-              :source_col     => fragment.column,
-              :source         => file
+            mappings << ::SourceMap::Mapping.new(file,
+              ::SourceMap::Offset.new(line, column),
+              ::SourceMap::Offset.new(source_line, fragment.column)
             )
+            # map.add_mapping(
+            #   :generated_line => line,
+            #   :generated_col  => column,
+            #   :source_line    => source_line,
+            #   :source_col     => fragment.column,
+            #   :source         => file
+            # )
           end
 
           new_lines = fragment.code.count "\n"
@@ -35,7 +46,17 @@ module Opal
             column += fragment.code.size
           end
         end
+
+        ::SourceMap::Map.new(mappings)
       end
+    end
+
+    def + other
+      to_source_map + other.to_source_map
+    end
+
+    def to_source_map
+      map
     end
 
     def as_json

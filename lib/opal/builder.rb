@@ -109,7 +109,7 @@ module Opal
       end
 
       def source_map
-        ''
+        @source_map ||= assets.map(&:source_map).compact.map(&:map).reduce(:+)
       end
 
       def == other
@@ -126,7 +126,7 @@ module Opal
         @requires = []
       end
 
-      attr_reader :path, :source, :requires
+      attr_reader :path, :source, :requires, :source_map
     end
 
     class RubyAsset < Asset
@@ -139,6 +139,13 @@ module Opal
 
       def source
         compiled.result
+      end
+
+      def source_map
+        # compiled.source_map
+        ::Opal::SourceMap.new(compiled.fragments, compiled.file).tap do |map|
+          map.file = path
+        end
       end
 
       def requires

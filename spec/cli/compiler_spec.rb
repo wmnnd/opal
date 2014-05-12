@@ -10,7 +10,7 @@ describe Opal::Compiler do
   describe 'requirable' do
     it 'executes the file' do
       expect_compiled("").to include('(function($opal) {')
-      expect_compiled("").to end_with("})(Opal);\n")
+      expect_compiled("").to end_with("})(this.Opal);\n")
     end
 
     it 'puts the compiled into "Opal.modules"' do

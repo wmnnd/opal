@@ -1,6 +1,7 @@
 (function(undefined) {
   // The Opal object that is exposed globally
   var Opal = this.Opal = {};
+  if (typeof(global) === 'object') global.Opal = Opal;
 
   // The actual class for BasicObject
   var RubyBasicObject;

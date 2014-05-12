@@ -103,19 +103,12 @@ module Opal
       result = builder.build_str(data, path, :prerequired => prerequired)
 
       if self.class.source_map_enabled
-        $OPAL_SOURCE_MAPS[context.pathname] = result.source_map.to_s
-        "#{result.to_s}\n//# sourceMappingURL=#{context.logical_path}.map\n"
+        logical_path = context.logical_path.to_s
+        $OPAL_SOURCE_MAPS[logical_path] = result.source_map.as_json.to_json
+        "#{result.to_s}\n//# sourceMappingURL=./#{context.logical_path}.map\n"
       else
         result.to_s
       end
-    end
-
-    def source_file_url(context)
-      "#{prefix}/#{context.logical_path.to_s}"
-    end
-
-    def prefix
-      "/__opal_source_maps__"
     end
 
     def stubbed_file?(name)
@@ -134,6 +127,32 @@ module Opal
       path ? File.join(path, "#{r}.rb") : r
     end
   end
+
+  module MapsMiddleware
+    def call(env)
+      if env['PATH_INFO'].end_with?('.map')
+        path = unescape(env['PATH_INFO'].to_s.sub(/^\//, ''))
+        path = path.sub(/\.(map|js)/, '')
+
+        if fingerprint = path_fingerprint(path)
+          path = path.sub("-#{fingerprint}", '')
+        end
+
+        asset = find_asset(path)
+        logical_path = asset.logical_path.to_s.gsub(/\.(map|js)$/, '')
+        body = $OPAL_SOURCE_MAPS[logical_path] || %Q{
+          {
+            "keys": #{$OPAL_SOURCE_MAPS.keys.inspect},
+            "path": #{logical_path}
+          }
+        }
+        [ 200, { "Content-Type" => "application/json", "Content-Length" => Rack::Utils.bytesize(body).to_s }, [ body ] ]
+      else
+        super
+      end
+    end
+  end
+
 end
 
 Tilt.register 'rb',               Opal::Processor
@@ -141,3 +160,9 @@ Sprockets.register_engine '.rb',  Opal::Processor
 
 Tilt.register 'opal',               Opal::Processor
 Sprockets.register_engine '.opal',  Opal::Processor
+
+
+require 'sprockets/server'
+Sprockets::Server.class_eval do
+  prepend Opal::MapsMiddleware
+end

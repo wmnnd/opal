@@ -37,7 +37,7 @@ module Opal
 
       def opening
         if compiler.requirable?
-          line "Opal.modules[#{compiler.file.inspect}] = function($opal) {"
+          line "this.Opal.modules[#{compiler.file.inspect}] = function($opal) {"
         else
           line "(function($opal) {"
         end
@@ -47,7 +47,7 @@ module Opal
         if compiler.requirable?
           line "};\n"
         else
-          line "})(Opal);\n"
+          line "})(this.Opal);\n"
         end
       end
 
