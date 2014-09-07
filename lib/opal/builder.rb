@@ -48,7 +48,7 @@ module Opal
     end
 
     def source_map
-      processed.map(&:source_map).reduce(:+).to_s
+      processed.map(&:source_map).reduce(:+).as_json.to_json
     end
 
     attr_reader :processed
